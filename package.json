@@ -1,0 +1,18 @@
+{
+  "name": "server-monitor",
+  "version": "1.0.0",
+  "description": "Server Monitoring System",
+  "scripts": {
+    "server": "cd server && node src/app.js",
+    "server:dev": "cd server && npx nodemon src/app.js",
+    "client": "cd client && npm run dev",
+    "client:build": "cd client && npm run build",
+    "dev": "npx concurrently \"npm run server:dev\" \"npm run client\"",
+    "build": "npm run client:build",
+    "start": "npm run server",
+    "setup": "cd server && npm install && cd ../client && npm install && cd .."
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
