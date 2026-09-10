@@ -8,10 +8,12 @@ async function setup() {
     const schema = fs.readFileSync(path.join(__dirname, 'sql/schema.sql'), 'utf8');
     const statements = schema.split(';').filter(s => s.trim());
     for (const stmt of statements) {
-      if (stmt.trim()) {
-        await pool.query(stmt);
-        console.log('OK:', stmt.trim().substring(0, 60));
-      }
+      const trimmed = stmt.trim();
+      if (!trimmed) continue;
+      if (trimmed.toUpperCase().startsWith('CREATE DATABASE')) continue;
+      if (trimmed.toUpperCase().startsWith('USE ')) continue;
+      await pool.query(trimmed);
+      console.log('OK:', trimmed.substring(0, 60));
     }
     console.log('Schema created!');
   } catch (err) {
