@@ -35,6 +35,16 @@ app.use('/api/latency', require('./routes/latency'));
 app.use('/api/diagnostic', require('./routes/diagnostic'));
 app.use('/api', require('./routes/api'));
 
+// Health check (no auth)
+app.get('/api/health', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT 1');
+    res.json({ ok: true, db: 'connected', host: process.env.MYSQLHOST || 'unknown', db_name: process.env.MYSQLDATABASE || 'unknown' });
+  } catch (err) {
+    res.json({ ok: false, error: err.message, host: process.env.MYSQLHOST || 'unknown', db_name: process.env.MYSQLDATABASE || 'unknown' });
+  }
+});
+
 // Serve React build static files
 app.use(express.static(path.join(__dirname, '../../client/dist')));
 
