@@ -25,6 +25,16 @@ app.use(session({
   cookie: { maxAge: 24 * 60 * 60 * 1000 }
 }));
 
+// Health check (no auth) - BEFORE other routes
+app.get('/api/health', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT 1');
+    res.json({ ok: true, db: 'connected', host: process.env.MYSQLHOST || 'unknown', db_name: process.env.MYSQLDATABASE || 'unknown' });
+  } catch (err) {
+    res.json({ ok: false, error: err.message, host: process.env.MYSQLHOST || 'unknown', db_name: process.env.MYSQLDATABASE || 'unknown' });
+  }
+});
+
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/monitoring', require('./routes/monitoring'));
@@ -34,16 +44,6 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/latency', require('./routes/latency'));
 app.use('/api/diagnostic', require('./routes/diagnostic'));
 app.use('/api', require('./routes/api'));
-
-// Health check (no auth)
-app.get('/api/health', async (req, res) => {
-  try {
-    const [rows] = await pool.query('SELECT 1');
-    res.json({ ok: true, db: 'connected', host: process.env.MYSQLHOST || 'unknown', db_name: process.env.MYSQLDATABASE || 'unknown' });
-  } catch (err) {
-    res.json({ ok: false, error: err.message, host: process.env.MYSQLHOST || 'unknown', db_name: process.env.MYSQLDATABASE || 'unknown' });
-  }
-});
 
 // Serve React build static files
 app.use(express.static(path.join(__dirname, '../../client/dist')));
