@@ -17,7 +17,6 @@ function getLocalNetworkInfo() {
     }
     return null;
   } catch (err) {
-    console.error('Get local IP error:', err.message);
     return null;
   }
 }
@@ -39,7 +38,6 @@ function getArpTable() {
     }
     return entries;
   } catch (err) {
-    console.error('ARP scan error:', err.message);
     return [];
   }
 }

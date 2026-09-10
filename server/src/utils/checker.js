@@ -1,5 +1,12 @@
 const net = require('net');
 const { execSync } = require('child_process');
+const os = require('os');
+
+const isWindows = os.platform() === 'win32';
+
+function pingCmd(host) {
+  return isWindows ? `ping -n 1 -w 2000 ${host}` : `ping -c 1 -W 2 ${host}`;
+}
 
 function checkTcp(host, port, timeout = 2000) {
   return new Promise((resolve) => {
@@ -26,7 +33,7 @@ function checkTcp(host, port, timeout = 2000) {
 function checkPing(host) {
   try {
     const start = Date.now();
-    execSync(`ping -n 1 -w 2000 ${host}`, { timeout: 3000 });
+    execSync(pingCmd(host), { timeout: 3000 });
     const latency = Date.now() - start;
     return { status: 'online', ms: latency };
   } catch {
@@ -36,7 +43,7 @@ function checkPing(host) {
 
 function singlePing(host) {
   try {
-    const output = execSync(`ping -n 1 -w 2000 ${host}`, { timeout: 3000 }).toString();
+    const output = execSync(pingCmd(host), { timeout: 3000 }).toString();
     const match = output.match(/time[=<](\d+)ms/i);
     if (match) return { success: true, ms: parseInt(match[1]) };
     return { success: true, ms: null };
