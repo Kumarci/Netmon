@@ -5,10 +5,49 @@ const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const fs = require('fs');
+const bcrypt = require('bcryptjs');
 const { getAllMetrics } = require('./utils/metrics');
 const { checkServer, checkLatency } = require('./utils/checker');
 const { updateServerIps, getArpTable, scanForDevices } = require('./utils/networkScanner');
 const pool = require('./db');
+
+async function initDatabase() {
+  try {
+    const [tables] = await pool.query("SHOW TABLES LIKE 'users'");
+    if (tables.length > 0) {
+      console.log('Database tables already exist');
+      return;
+    }
+    console.log('Creating database tables...');
+    const schemaPath = path.join(__dirname, '../../sql/schema.sql');
+    const schema = fs.readFileSync(schemaPath, 'utf8');
+    const statements = schema.split(';').filter(s => s.trim());
+    for (const stmt of statements) {
+      const trimmed = stmt.trim();
+      if (!trimmed) continue;
+      if (trimmed.toUpperCase().startsWith('CREATE DATABASE')) continue;
+      if (trimmed.toUpperCase().startsWith('USE ')) continue;
+      await pool.query(trimmed);
+    }
+    console.log('Tables created! Running seed...');
+    const hash = bcrypt.hashSync('admin123', 10);
+    await pool.query('INSERT IGNORE INTO users (username, password, nama, role) VALUES (?, ?, ?, ?)', ['admin', hash, 'Administrator', 'admin']);
+    const servers = [
+      ['Router Utama', '192.168.3.1', 'f4:1e:57:cb:b4:c1', 0, 'Router/Gateway', 'router', 'Ruang Server', 'Gateway utama jaringan lokal'],
+      ['PC Mba Hana', '192.168.3.2', '14:ac:60:d1:ba:3d', 0, 'Desktop Windows', 'desktop_windows', 'Ruang Kerja', 'PC Windows workstation'],
+      ['Linux Device A', '192.168.3.7', '3c:78:95:bd:ee:38', 0, 'Linux Server', 'dns', 'Ruang Server', 'Linux device TTL 64'],
+      ['Linux Device B', '192.168.3.17', null, 0, 'Linux Server', 'dns', 'Ruang Server', 'Linux device TTL 64'],
+      ['Linux Device C', '192.168.3.18', '10:5a:95:5e:dd:20', 0, 'Linux Server', 'dns', 'Ruang Server', 'Linux device TTL 64'],
+    ];
+    for (const s of servers) {
+      await pool.query('INSERT IGNORE INTO servers (nama, ip_address, mac_address, port, tipe, icon, lokasi, keterangan, aktif) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)', s);
+    }
+    console.log('Seed completed!');
+  } catch (err) {
+    console.error('Database init error:', err.message);
+  }
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -188,5 +227,7 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
 });
 
-server.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+initDatabase().then(() => {
+  server.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+});
 module.exports = { app, server, io };
